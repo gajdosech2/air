@@ -5,6 +5,13 @@
 (() => {
   "use strict";
 
+  // ── Calibration offsets (applied on display, raw DB untouched) ─
+  const CALIBRATION = {
+    temp: -5,       // sensor reads ~5 °C high
+    // pm25: 0,     // add offsets for other metrics if needed
+    // humidity: 0,
+  };
+
   // ── Metric definitions ──────────────────────────────────────
   const METRICS = {
     pm25:     { label: "PM2.5",     unit: "µg/m³", color: "#f472b6", icon: "🫁", key: "pm25" },
@@ -94,7 +101,12 @@
       const el = $(`val-${id}`);
       if (el) {
         const raw = data[meta.key];
-        el.textContent = raw !== undefined && raw !== null ? raw : "—";
+        if (raw !== undefined && raw !== null) {
+          const offset = CALIBRATION[id] || 0;
+          el.textContent = Math.round((raw + offset) * 10) / 10;
+        } else {
+          el.textContent = "—";
+        }
       }
     }
 
@@ -125,10 +137,11 @@
     const meta = METRICS[activeMetric];
     chartTitle.textContent = `${meta.label} — History`;
 
+    const offset = CALIBRATION[activeMetric] || 0;
     const dataPoints = readings
       .map((r) => ({
         x: new Date(r.recorded_at),
-        y: r.data[meta.key],
+        y: r.data[meta.key] != null ? r.data[meta.key] + offset : null,
       }))
       .filter((d) => d.y !== undefined && d.y !== null);
 

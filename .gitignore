@@ -1,0 +1,21 @@
+# Python virtual env
+bin/
+lib/
+include/
+pyvenv.cfg
+__pycache__/
+
+# Env & secrets
+.env
+.env.local
+
+# Device cache
+.device_ip_cache.json
+snapshot.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if ever added locally)
+node_modules/

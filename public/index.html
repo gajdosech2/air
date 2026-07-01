@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AIR — Air Quality Dashboard</title>
+  <meta name="description" content="Real-time air quality monitoring dashboard with PM2.5, temperature, humidity, CO₂, TVOC, and formaldehyde tracking." />
+  <meta name="theme-color" content="#0a0e1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AIR" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌬️</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌬️</text></svg>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading sensor data…</div>
+  </div>
+
+  <div class="app" id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="header-icon"><i class="fa-solid fa-wind"></i></div>
+        <div>
+          <h1 class="header-title">AIR</h1>
+          <p class="header-subtitle">Air Quality Monitor</p>
+        </div>
+      </div>
+      <div class="header-status" id="headerStatus">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Connecting…</span>
+      </div>
+    </header>
+
+    <!-- Error banner -->
+    <div class="error-banner" id="errorBanner">
+      <span><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <span id="errorText"></span>
+    </div>
+
+    <!-- Air quality banner -->
+    <div class="air-quality-banner" id="aqBanner" data-quality="great">
+      <div class="aq-info">
+        <div class="aq-label">Air Quality</div>
+        <div class="aq-value" id="aqValue">—</div>
+        <div class="aq-timestamp" id="aqTimestamp">—</div>
+      </div>
+      <div class="aq-badge" id="aqBadge" data-quality="great"><i class="fa-solid fa-leaf"></i></div>
+    </div>
+
+    <!-- Time range controls -->
+    <nav class="controls" id="rangeControls">
+      <button class="range-btn" data-range="1h">1H</button>
+      <button class="range-btn active" data-range="24h">24H</button>
+      <button class="range-btn" data-range="7d">7D</button>
+      <button class="range-btn" data-range="30d">30D</button>
+      <button class="range-btn" data-range="all">All</button>
+    </nav>
+
+    <!-- Metric cards -->
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card active" data-metric="pm25" id="card-pm25">
+        <div class="metric-header">
+          <span class="metric-name">PM2.5</span>
+          <span class="metric-icon"><i class="fa-solid fa-lungs"></i></span>
+        </div>
+        <div class="metric-value" id="val-pm25">—</div>
+        <div class="metric-unit">µg/m³</div>
+      </div>
+      <div class="metric-card" data-metric="temp" id="card-temp">
+        <div class="metric-header">
+          <span class="metric-name">Temp</span>
+          <span class="metric-icon"><i class="fa-solid fa-temperature-half"></i></span>
+        </div>
+        <div class="metric-value" id="val-temp">—</div>
+        <div class="metric-unit">°C</div>
+      </div>
+      <div class="metric-card" data-metric="humidity" id="card-humidity">
+        <div class="metric-header">
+          <span class="metric-name">Humidity</span>
+          <span class="metric-icon"><i class="fa-solid fa-droplet"></i></span>
+        </div>
+        <div class="metric-value" id="val-humidity">—</div>
+        <div class="metric-unit">%</div>
+      </div>
+      <div class="metric-card" data-metric="eco2" id="card-eco2">
+        <div class="metric-header">
+          <span class="metric-name">eCO₂</span>
+          <span class="metric-icon"><i class="fa-solid fa-cloud"></i></span>
+        </div>
+        <div class="metric-value" id="val-eco2">—</div>
+        <div class="metric-unit">ppm</div>
+      </div>
+      <div class="metric-card" data-metric="tvoc" id="card-tvoc">
+        <div class="metric-header">
+          <span class="metric-name">TVOC</span>
+          <span class="metric-icon"><i class="fa-solid fa-flask-vial"></i></span>
+        </div>
+        <div class="metric-value" id="val-tvoc">—</div>
+        <div class="metric-unit">ppb</div>
+      </div>
+      <div class="metric-card" data-metric="ch2o" id="card-ch2o">
+        <div class="metric-header">
+          <span class="metric-name">CH₂O</span>
+          <span class="metric-icon"><i class="fa-solid fa-vial"></i></span>
+        </div>
+        <div class="metric-value" id="val-ch2o">—</div>
+        <div class="metric-unit">µg/m³</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <section class="chart-section" id="chartSection">
+      <div class="chart-header">
+        <h2 class="chart-title" id="chartTitle">PM2.5 — History</h2>
+        <div class="chart-legend" id="chartLegend"></div>
+      </div>
+      <div class="chart-canvas-wrapper">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </section>
+
+    <!-- No data message (hidden by default) -->
+    <div class="no-data-message" id="noData" style="display:none;">
+      <div class="nd-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+      <div class="nd-title">No data yet</div>
+      <div class="nd-subtitle">Sensor readings will appear here once data starts flowing.</div>
+    </div>
+
+    <footer class="footer">
+      Tuya Air Sensor · Data refreshes every 60 s
+    </footer>
+  </div>
+
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
